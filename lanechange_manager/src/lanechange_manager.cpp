@@ -2,6 +2,7 @@
 #include<autoware_msgs/LaneArray.h>
 #include<autoware_msgs/Lane.h>
 #include<geometry_msgs/PoseStamped.h>
+#include<geometry_msgs/TwistStamped.h>
 #include<std_msgs/String.h>
 
 #include<cmath>
@@ -15,6 +16,7 @@ public:
     : cur_x(0.0)
     , cur_y(0.0)
     , cur_z(0.0)
+    , cur_vel(0.0)
     , prev_x(0.0)
     , prev_y(0.0)
     , lane_x(0.0)
@@ -35,9 +37,13 @@ public:
             throw std::runtime_error("set current_dist_threshold");    
         if(!private_nh.getParam("interval", INTERVAL))
             throw std::runtime_error("set interval");   
+        if(!private_nh.getParam("default_margin", DEFAULT_MARGIN))
+            throw std::runtime_error("set default_margin");
 
-        lane_sub = nh.subscribe("/lane_waypoints_array2", 10, &CalcAroundWaypoints::LaneCallback, this);
-        cur_pose_sub = nh.subscribe("/current_pose", 1, &CalcAroundWaypoints::PoseCallback, this);
+        lane_sub = nh.subscribe("/lane_waypoints_array2", 10, &CalcAroundWaypoints::callbackLaneWaypointsArray, this);
+        cur_pose_sub = nh.subscribe("/current_pose", 1, &CalcAroundWaypoints::callbackCurrentPose, this);
+        cur_vel_sub = nh.subscribe("/current_velocity", 1, &CalcAroundWaypoints::callbackCurrentVelocity, this);
+
         lane_pub = nh.advertise<autoware_msgs::LaneArray>("lane_waypoints_array", 10, true);
         sub_decision_state = nh.subscribe("/decision_maker/state", 1, &CalcAroundWaypoints::callbackDecisionMakerState, this);
         check_same.clear();
@@ -70,7 +76,7 @@ public:
             return true;
     }
 
-    void LaneCallback(const autoware_msgs::LaneArray::ConstPtr& in_lane){
+    void callbackLaneWaypointsArray(const autoware_msgs::LaneArray::ConstPtr& in_lane){
         tmp_lane.id = in_lane->id;
         tmp_lane.lanes = in_lane->lanes;
 
@@ -81,7 +87,7 @@ public:
         }
     }
 
-    void PoseCallback(const geometry_msgs::PoseStamped::ConstPtr& in_pose){
+    void callbackCurrentPose(const geometry_msgs::PoseStamped::ConstPtr& in_pose){
         cur_x = in_pose->pose.position.x;
         cur_y = in_pose->pose.position.y;
         cur_z = in_pose->pose.position.z;
@@ -101,6 +107,10 @@ public:
         }
 
         return true;
+    }
+
+    void callbackCurrentVelocity(const geometry_msgs::TwistStamped::ConstPtr& in_velocity){
+        cur_vel = in_velocity->twist.linear.x;
     }
 
     void callbackDecisionMakerState(const std_msgs::StringConstPtr& input_msg)
@@ -166,12 +176,13 @@ public:
 
         if(left_check && outer_product > 0){
             if(left_change){
+                nh.setParam("/op_trajectory_generator/samplingOutMargin", calcRollInMargin());
                 out_lane.lanes.clear();
                 out_lane.lanes.resize(0);
                 check_same_tmp.clear();
                 check_same_tmp.resize(0);
-                change_interval = INTERVAL;
                 changed_lane = lane;
+                change_interval = INTERVAL;
             }
             ROS_INFO("set left lane!");
             out_lane.lanes.emplace_back(lane);
@@ -179,18 +190,33 @@ public:
         }
         else if(right_check && outer_product < 0){
             if(right_change){
+                nh.setParam("/op_trajectory_generator/samplingOutMargin", calcRollInMargin());
                 out_lane.lanes.clear();
                 out_lane.lanes.resize(0);
                 check_same_tmp.clear();
                 check_same_tmp.resize(0);
-                change_interval = INTERVAL;
                 changed_lane = lane;
-            }            
+                change_interval = INTERVAL;
+            }
             ROS_INFO("set right lane!");
             out_lane.lanes.emplace_back(lane);
             check_same_tmp.emplace_back(seq);
         }
         lane_check_ok = true;
+    }
+
+    double calcRollInMargin(){
+        double margin;
+        if(cur_vel < 5)
+            margin = DEFAULT_MARGIN;
+        else
+            margin = 8 + (0.8*cur_vel) + (2.5 * sqrt(cur_vel - 4));
+
+        // if(margin <= DEFAULT_MARGIN) return DEFAULT_MARGIN;
+        // else return margin; 
+        ROS_INFO("Current v : %f", cur_vel);
+        ROS_INFO("OutMargin : %f", margin);
+        return margin;
     }
 
     void mainLoop(){
@@ -207,6 +233,7 @@ public:
 
         int cur_index;
         if(change_interval <= 0){
+            nh.setParam("/op_trajectory_generator/samplingOutMargin", DEFAULT_MARGIN);
             for(int i = 0; i < tmp_lane.lanes.size(); i++){
                 for(auto& waypoint : tmp_lane.lanes[i].waypoints){
                     if(CurrentLaneCheck(waypoint.pose.pose.position.x
@@ -266,6 +293,7 @@ private:
     ros::Subscriber lane_sub;
     ros::Subscriber cur_pose_sub;
     ros::Subscriber sub_decision_state;
+    ros::Subscriber cur_vel_sub;
 
     ros::Publisher lane_pub;
 
@@ -280,10 +308,11 @@ private:
     bool left_check, right_check;
     bool left_change, right_change;
 
-    double cur_x, cur_y, cur_z;
+    double cur_x, cur_y, cur_z, cur_vel;
     double lane_x, lane_y;
     double prev_x, prev_y;
 
+    double DEFAULT_MARGIN;
     double DIST_THRESHOLD;
     double CURRENT_DIST_THRESHOLD;
     int INTERVAL;
