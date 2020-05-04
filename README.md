@@ -19,5 +19,10 @@ $ roslaunch lanechange_manager lanechange_manager.launch
 <img src="lanechange_manager/img/init_car.png" width="100%" height="100%">
 
 2. 차량이 주행하면서 lane change 할 수 있는 waypoints 감지
-<img src="calc_around_waypoints/images/rviz2.png" width="100%" height="100%">
-<img src="calc_around_waypoints/images/terminal2.png" width="100%" height="100%">
+ * state : CheckRightLane
+<img src="lanechange_manager/img/CheckRightLaneState.png" width="100%" height="100%">
+
+3. 차량이 차선확인을 하고 난 후 차선변경 명령수행
+ * 속도에 비례하여 차선변경 waypoint 기울기가 부드러워짐 (smoothing)
+ * simulation car velocity : 54km/h
+<img src="lanechange_manager/img/ChangeToRightState.png" width="100%" height="100%">
