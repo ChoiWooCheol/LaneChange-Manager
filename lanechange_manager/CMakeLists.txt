@@ -208,6 +208,7 @@ include_directories(
 
 
 add_executable(lanechange_manager
+  src/lanechange_manager_core.cpp
   src/lanechange_manager.cpp
 )
 add_dependencies(lanechange_manager ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
