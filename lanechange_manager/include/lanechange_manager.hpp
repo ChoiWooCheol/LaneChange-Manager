@@ -25,7 +25,6 @@ public:
     , lane_x(0.0)
     , lane_y(0.0)
     , check_seq(0)
-    , change_interval(-1)
     , subscribe_ok(false)
     , lane_check_ok(false)
     , change_done(true)
@@ -38,14 +37,16 @@ public:
         if(!private_nh.getParam("dist_threshold", DIST_THRESHOLD))
             throw std::runtime_error("set dist_threshold");
         if(!private_nh.getParam("current_dist_threshold", CURRENT_DIST_THRESHOLD))
-            throw std::runtime_error("set current_dist_threshold");    
-        if(!private_nh.getParam("interval", INTERVAL))
-            throw std::runtime_error("set interval");   
+            throw std::runtime_error("set current_dist_threshold");      
         if(!private_nh.getParam("default_margin", DEFAULT_MARGIN))
             throw std::runtime_error("set default_margin");
+        if(!private_nh.getParam("rollin", ROLLIN))
+            throw std::runtime_error("set rollin");
 
         lane_sub = nh.subscribe("/lane_waypoints_array2", 10, &CalcAroundWaypoints::callbackLaneWaypointsArray, this);
         cur_pose_sub = nh.subscribe("/current_pose", 1, &CalcAroundWaypoints::callbackCurrentPose, this);
+        sub_LocalWeightTrajectories = nh.subscribe("/local_weighted_trajectories", 1, &CalcAroundWaypoints::callbackLocalWeightTrajectories, this);
+
         cur_vel_sub = nh.subscribe("/current_velocity", 1, &CalcAroundWaypoints::callbackCurrentVelocity, this);
 
         lane_pub = nh.advertise<autoware_msgs::LaneArray>("lane_waypoints_array", 10, true);
@@ -56,9 +57,11 @@ public:
 
     bool DistanceCheck(double x, double y, double z);
     bool CurrentLaneCheck(double x, double y, double z);
+    bool OntoLaneCheck(double x, double y, double z);
     bool LaneChangeDone(autoware_msgs::Lane& next_lane);
     void callbackLaneWaypointsArray(const autoware_msgs::LaneArray::ConstPtr& in_lane);
     void callbackCurrentPose(const geometry_msgs::PoseStamped::ConstPtr& in_pose);
+    void callbackLocalWeightTrajectories(const autoware_msgs::LaneArray::ConstPtr& in_trajectory);
     bool isReady();
     bool checkSameLane(std::vector<int>& cur_lanes, std::vector<int>& prev_lanes);
     void callbackCurrentVelocity(const geometry_msgs::TwistStamped::ConstPtr& in_velocity);
@@ -75,6 +78,7 @@ private:
     ros::Subscriber cur_pose_sub;
     ros::Subscriber sub_decision_state;
     ros::Subscriber cur_vel_sub;
+    ros::Subscriber sub_LocalWeightTrajectories;
 
     ros::Publisher lane_pub;
 
@@ -83,7 +87,6 @@ private:
     std::vector<int> check_same;
 
     unsigned int check_seq;
-    int change_interval;
 
     bool subscribe_ok, lane_check_ok;
     bool left_check, right_check;
@@ -97,7 +100,7 @@ private:
     double DEFAULT_MARGIN;
     double DIST_THRESHOLD;
     double CURRENT_DIST_THRESHOLD;
-    int INTERVAL;
+    int ROLLIN;
 };
 
 #endif

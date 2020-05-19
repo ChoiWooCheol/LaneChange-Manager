@@ -33,14 +33,27 @@ bool CalcAroundWaypoints::CurrentLaneCheck(double x, double y, double z){
 
      if(dist > CURRENT_DIST_THRESHOLD)
         return false;
-    else
+     else
+        return true;
+}
+
+bool CalcAroundWaypoints::OntoLaneCheck(double x, double y, double z){
+    double dist;
+
+     dist = 
+        sqrt(pow(cur_x - x, 2) 
+            + pow(cur_y - y, 2));
+
+     if(dist > 0.5)
+        return false;
+     else
         return true;
 }
 
 bool CalcAroundWaypoints::LaneChangeDone(autoware_msgs::Lane& next_lane){
     bool change_done_ok = false;
     for(auto& waypoint : next_lane.waypoints){
-        if(DistanceCheck(waypoint.pose.pose.position.x
+        if(OntoLaneCheck(waypoint.pose.pose.position.x
                         ,waypoint.pose.pose.position.y
                         ,waypoint.pose.pose.position.z))
         {
@@ -88,6 +101,23 @@ void CalcAroundWaypoints::callbackCurrentVelocity(const geometry_msgs::TwistStam
     cur_vel = in_velocity->twist.linear.x;
 }
 
+void CalcAroundWaypoints::callbackLocalWeightTrajectories(const autoware_msgs::LaneArray::ConstPtr& in_trajectory){
+    int blocked_count = 0;
+
+    if (in_trajectory->lanes.size() == ROLLIN) {
+        lane_check_ok = true;
+    }
+    else if (in_trajectory->lanes.size() > ROLLIN){
+        for(int i = 0; i < ROLLIN; i++){
+            if(in_trajectory->lanes[ROLLIN + i].is_blocked)
+                ++blocked_count;
+        }
+    }
+
+    if(blocked_count > ROLLIN * 0.6) lane_check_ok = false;
+    else lane_check_ok = true;
+}
+
 void CalcAroundWaypoints::callbackDecisionMakerState(const std_msgs::StringConstPtr& input_msg)
 {
 	if (input_msg->data.find("Drive\n") != std::string::npos && input_msg->data.find("VehicleReady\n") != std::string::npos)
@@ -121,21 +151,25 @@ void CalcAroundWaypoints::callbackDecisionMakerState(const std_msgs::StringConst
             check_seq = 0;
 		}
 
-        if (input_msg->data.find("ChangeToLeft\n") != std::string::npos)
-		{
-			left_change = true;
-			right_change = false;
-		}
-		else if (input_msg->data.find("ChangeToRight\n") != std::string::npos)
-		{
-			left_change = false;
-			right_change = true;
-		}
-		else
-		{
-			left_change = false;
-			right_change = false;
-		}
+        if(lane_check_ok){
+            if (input_msg->data.find("ChangeToLeft\n") != std::string::npos)
+		    {
+		    	left_change = true;
+		    	right_change = false;
+		    }
+		    else if (input_msg->data.find("ChangeToRight\n") != std::string::npos)
+		    {
+		    	left_change = false;
+		    	right_change = true;
+		    }
+		    else
+		    {
+		    	left_change = false;
+		    	right_change = false;
+		    }            
+        }
+        else
+            ROS_WARN("obstacle is detected!");
 	}
 }
 
@@ -176,7 +210,7 @@ void CalcAroundWaypoints::SetNearLane(autoware_msgs::LaneArray& out_lane, autowa
         out_lane.lanes.emplace_back(lane);
         check_same_tmp.emplace_back(seq);
     }
-    lane_check_ok = true;
+    // lane_check_ok = true;
 }
 
 double CalcAroundWaypoints::calcRollInMargin(){
@@ -257,6 +291,6 @@ void CalcAroundWaypoints::run(){
         lane_pub.publish(output_lane);
         check_same = check_same_tmp;
         ROS_INFO("Changed around lanes!");
-        lane_check_ok = false;
+        // lane_check_ok = false;
     }
 }

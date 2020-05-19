@@ -2,7 +2,7 @@
     <node name="lanechange_manager" pkg="lanechange_manager" type="lanechange_manager" output="screen" >
         <param name="dist_threshold" value="5.0" />
         <param name="current_dist_threshold" value="1.0" />
-        <param name="interval" value="20" />
         <param name="default_margin" value="15.0" />
+        <param name="rollin" value="5" />
     </node>
 </launch>
