@@ -1,8 +1,22 @@
 <launch>
+    <arg name="mainlane_dist_threshold" default="20.0" />
+    <arg name="dist_threshold"          default="4.0" />
+    <arg name="curr_dist_threshold"     default="1.0" />
+    <arg name="default_margin"          default="15.0" />
+    <arg name="main_frequency"          default="10" />
+    <arg name="change_frequency"        default="0.5" />
+    <arg name="main_wait"               default="3"/>
+    <arg name="decision_wait"           default="3"/>
+
     <node name="lanechange_manager" pkg="lanechange_manager" type="lanechange_manager" output="screen" >
-        <param name="dist_threshold" value="5.0" />
-        <param name="current_dist_threshold" value="1.0" />
-        <param name="default_margin" value="15.0" />
-        <param name="rollin" value="5" />
+        <param name="mainlane_dist_threshold" value="$(arg mainlane_dist_threshold)" />
+        <param name="dist_threshold"          value="$(arg dist_threshold)" />
+        <param name="current_dist_threshold"  value="$(arg curr_dist_threshold)" />
+        <param name="default_margin"          value="$(arg default_margin)" />
+        <param name="main_frequency"          value="$(arg main_frequency)" />
+        <param name="change_frequency"        value="$(arg change_frequency)" />
+        <param name="main_wait"               value="$(arg main_wait)" />
+        <param name="decision_wait"           value="$(arg decision_wait)" />
     </node>
+    <node name="echo_decision_publisher" pkg="lanechange_manager" type="echo_decision_publisher" output="screen" />
 </launch>

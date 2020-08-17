@@ -208,10 +208,18 @@ include_directories(
 
 
 add_executable(lanechange_manager
-  src/lanechange_manager_core.cpp
-  src/lanechange_manager.cpp
+  nodes/lane_change_manager/lanechange_manager_core.cpp
+  nodes/lane_change_manager/lanechange_manager.cpp
 )
 add_dependencies(lanechange_manager ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(lanechange_manager
+  ${catkin_LIBRARIES}
+)
+
+add_executable(echo_decision_publisher
+  nodes/echo_decision_publisher/echo_decision_publisher.cpp
+)
+add_dependencies(echo_decision_publisher ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(echo_decision_publisher
   ${catkin_LIBRARIES}
 )
