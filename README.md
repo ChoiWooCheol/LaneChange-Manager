@@ -1,5 +1,8 @@
 # LaneChange-Manager
 * autoware에 구현되어있지 않은 기능 중 하나인 차선변경기능을 가능하게 해주는 패키지를 작성한 것 입니다.
+* global planner의 output을 수신받아 lanechange manager가 따로 관리하게됩니다.
+* op global planner의 lanechange를 켠 상태로 global planning을 하게되면 여러 차선이 나오는데 그 상태에서 goal point에 도달가능한 lane을 찾아 추종합니다.
+* target lane에 다른 차량이 주행중이거나 장애물이 있을경우 차선변경을 수행하지 않습니다. 
 
 # Method
 * 주변 Lane을 찾는 기능구현은 저의 레포지토리 중 find arround lanes 와 같습니다.
@@ -26,3 +29,5 @@ $ roslaunch lanechange_manager lanechange_manager.launch
  * 속도에 비례하여 차선변경 waypoint 기울기가 부드러워짐 (smoothing)
  * simulation car velocity : 54km/h
 <img src="lanechange_manager/img/ChangeToRightState.png" width="100%" height="100%">
+
+4. lanechange manager의 내부 state machine
