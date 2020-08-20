@@ -65,22 +65,22 @@ public:
             state = transition_map[state].at(transition);
             if(prev_state != state){
                 std::string prev, curr;
-                if (prev_state == STATE_FOLLOW) prev = "follow";
-                else if (prev_state == STATE_NEED_LANE_CHANGE) prev = "need lane change";
-                else if (prev_state == STATE_CHECK_NEXT_LANE) prev = "check next lane";
-                else if (prev_state == STATE_EXCUTE_LANE_CHANGE) prev = "excute lane change";
-                else if (prev_state == STATE_LANE_CHANGE_DONE) prev = "lane change done";
+                if (prev_state == STATE_FOLLOW) prev = "FOLLOW";
+                else if (prev_state == STATE_NEED_LANE_CHANGE) prev = "NeedLaneChange";
+                else if (prev_state == STATE_CHECK_NEXT_LANE) prev = "CheckNextLane";
+                else if (prev_state == STATE_EXCUTE_LANE_CHANGE) prev = "ExcuteLaneChange";
+                else if (prev_state == STATE_LANE_CHANGE_DONE) prev = "LaneChangeDone";
 
-                if (state == STATE_FOLLOW) curr = "follow";
-                else if (state == STATE_NEED_LANE_CHANGE) curr = "need lane change";
-                else if (state == STATE_CHECK_NEXT_LANE) curr = "check next lane";
-                else if (state == STATE_EXCUTE_LANE_CHANGE) curr = "excute lane change";
-                else if (state == STATE_LANE_CHANGE_DONE) curr = "lane change done";
+                if (state == STATE_FOLLOW) curr = "FOLLOW";
+                else if (state == STATE_NEED_LANE_CHANGE) curr = "NeedLaneChange";
+                else if (state == STATE_CHECK_NEXT_LANE) curr = "CheckNextLane";
+                else if (state == STATE_EXCUTE_LANE_CHANGE) curr = "ExcuteLaneChange";
+                else if (state == STATE_LANE_CHANGE_DONE) curr = "LaneChangeDone";
 
                 ROS_WARN("Changed State [%s]->[%s]", prev.c_str(), curr.c_str());
             }
         }
-        
+        // onUpdate(); 여기에 있어도 되고, 외부에서 불러줘도됨.
     }
 
     void getCurrentState(){

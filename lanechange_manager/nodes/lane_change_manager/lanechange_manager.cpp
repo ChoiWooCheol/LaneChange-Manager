@@ -14,6 +14,7 @@
 
 #include "lanechange_manager.hpp"
 
+// Some dot(x,y,z) to current_pose distance check (distance threshold is in_dist).
 bool CalcAroundWaypoints::checkDistance(const double x, const double y, const double z, const double in_dist)
 {
        double dist;
@@ -26,6 +27,7 @@ bool CalcAroundWaypoints::checkDistance(const double x, const double y, const do
            return true;
 }
 
+// Some target lane's waypoint to current pose distance checking. Using 'checkDistance' function.
 bool CalcAroundWaypoints::checkLaneChangeDone(const autoware_msgs::Lane& next_lane){
     manager_state.tryNextState("is_target_lane_no");
     bool change_done_ok = false;
@@ -44,17 +46,19 @@ bool CalcAroundWaypoints::checkLaneChangeDone(const autoware_msgs::Lane& next_la
     return change_done_ok;
 }
 
+/* if you use waypoint loader, check off this session.
 void CalcAroundWaypoints::callbackLaneWaypointsArray(const autoware_msgs::LaneArray::ConstPtr& in_lane){
     tmp_lane.id = in_lane->id;
     tmp_lane.lanes = in_lane->lanes;
     manager_state.tryNextState("received_global_path");
-    if (tmp_lane.lanes.size() != NULL) {
+    if (tmp_lane.lanes.size() != NULL) { 
         subscribe_ok = true;
         ROS_INFO("Subscribe OK!");
         ROS_INFO("Total Lane size : %d", tmp_lane.lanes.size());
     }
     manager_state.tryNextState("received_multi_global_path");
 }
+*/
 
 void CalcAroundWaypoints::callbackCurrentPose(const geometry_msgs::PoseStamped::ConstPtr& in_pose){
     cur_x = in_pose->pose.position.x;
@@ -73,7 +77,6 @@ bool CalcAroundWaypoints::isReady(){
     return subscribe_ok;
 }
 
-// 
 bool CalcAroundWaypoints::checkSameLane(const std::vector<int>& cur_lanes, const std::vector<int>& prev_lanes){
     if(cur_lanes.size() != prev_lanes.size()) 
         return false;
@@ -90,9 +93,7 @@ int CalcAroundWaypoints::getGlobalMainLaneIndex(const autoware_msgs::LaneArray& 
     uint index = 0;
     uint main_index;
     uint main_gid;
-    //std::vector<std::pair<int, int>> gid_vec;
-    //gid_vec.clear();
-    //gid_vec.resize(0);
+
     if (global_lanes.lanes.size() < 2) {
         manager_state.tryNextState("not_need_lane_change");
         return index;
@@ -100,7 +101,6 @@ int CalcAroundWaypoints::getGlobalMainLaneIndex(const autoware_msgs::LaneArray& 
     else {
         manager_state.tryNextState("received_multi_global_path");
         for (auto& lane : global_lanes.lanes){
-            // gid_vec.emplace_back(std::make_pair(index, lane.waypoints[0].gid));
             if (index == 0) {
                 main_gid = lane.waypoints[0].gid;
                 main_index = index;
@@ -118,6 +118,35 @@ int CalcAroundWaypoints::getGlobalMainLaneIndex(const autoware_msgs::LaneArray& 
     return -1;
 }
 
+void CalcAroundWaypoints::publishFirstCurrentLane(const autoware_msgs::LaneArray& global_lanes) {
+    uint index = 0;
+    uint curr_index;
+    uint curr_gid;
+    autoware_msgs::LaneArray curr_lanes;
+    curr_lanes.id = global_lanes.id;
+    if (global_lanes.lanes.size() < 2) {
+        lane_pub.publish(global_lanes);
+    }
+    else {
+        for (auto& lane : global_lanes.lanes){
+            if (index == 0) {
+                curr_gid = lane.waypoints[0].gid;
+                curr_index = index;
+            }
+            else {
+                if (curr_gid > lane.waypoints[0].gid){
+                    curr_gid = lane.waypoints[0].gid;
+                    curr_index = index;
+                }
+            }
+            ++index;
+        }
+        curr_lanes.lanes.emplace_back(global_lanes.lanes[curr_index]);
+        lane_pub.publish(curr_lanes);
+        change_done = true;
+    }
+}
+
 int CalcAroundWaypoints::setWaitTime(const uint sec) {
     double main_freq;
     private_nh.getParam("main_frequency", main_freq);
@@ -125,11 +154,16 @@ int CalcAroundWaypoints::setWaitTime(const uint sec) {
 }
 
 void CalcAroundWaypoints::callbackGlobalPath(const autoware_msgs::LaneArray::ConstPtr& global_lanes){
+    left_change = false;
+    right_change = false;
+    left_check = false;
+    right_check = false;
     manager_state.tryNextState("received_global_path");
     global_lane.id = global_lanes->id;
     global_lane.lanes = global_lanes->lanes;
+    publishFirstCurrentLane(global_lane);
     onSign("straight");
-    if (global_lane.lanes.size() != NULL) {
+    if (global_lane.lanes.size() != 0) {
         subscribe_ok = true;
         ROS_INFO("Received New Global Lanes!");
         ROS_INFO("Global Lanes size : %d", global_lane.lanes.size());
@@ -259,12 +293,10 @@ void CalcAroundWaypoints::doFollowMainLane(const autoware_msgs::LaneArray& globa
                             ,MAINLANE_DIST_THRESHOLD))
             {
                 if(calcLaneEquationDist(wp.pose.pose.position.x, wp.pose.pose.position.y) == 1){
-                    near_lane_x = wp.pose.pose.position.x;
-                    near_lane_y = wp.pose.pose.position.y;
                     lane_x_vector = cur_x - prev_pose_x;
                     lane_y_vector = cur_y - prev_pose_y;
-                    target_x_vector = near_lane_x - prev_pose_x;
-                    target_y_vector = near_lane_y - prev_pose_y;
+                    target_x_vector = wp.pose.pose.position.x - prev_pose_x;
+                    target_y_vector = wp.pose.pose.position.y - prev_pose_y;
                     outer_product = (lane_x_vector * target_y_vector) - (lane_y_vector * target_x_vector);
                     break;
                 }
@@ -282,10 +314,9 @@ void CalcAroundWaypoints::doFollowMainLane(const autoware_msgs::LaneArray& globa
         else onSign("straight");
     }
     else{
-        // ROS_INFO("Driving in main lane");current_lane_is_main
+        // Driving in main lane
+        // if you want to add some function that is main lane state's actions, write in this session.
     }
-   
-    // ROS_ERROR("seg end");
 }
 
 void CalcAroundWaypoints::setNearLane(autoware_msgs::LaneArray& out_lane, const autoware_msgs::Lane& lane,
@@ -299,32 +330,25 @@ void CalcAroundWaypoints::setNearLane(autoware_msgs::LaneArray& out_lane, const 
     if(left_check && outer_product > 0){
         if(left_change){
             nh.setParam("/op_trajectory_generator/samplingOutMargin", calcRollInMargin());
-            out_lane.lanes.clear();
-            out_lane.lanes.resize(0);
-            check_same_tmp.clear();
-            check_same_tmp.resize(0);
+            setClearVector(out_lane.lanes);
+            setClearVector(check_same_tmp);
             changed_lane = lane;
             change_done = false;
         }
-        // ROS_INFO("set left lane!");
         out_lane.lanes.emplace_back(lane);
         check_same_tmp.emplace_back(seq);
     }
     else if(right_check && outer_product < 0){
         if(right_change){
             nh.setParam("/op_trajectory_generator/samplingOutMargin", calcRollInMargin());
-            out_lane.lanes.clear();
-            out_lane.lanes.resize(0);
-            check_same_tmp.clear();
-            check_same_tmp.resize(0);
+            setClearVector(out_lane.lanes);
+            setClearVector(check_same_tmp);
             changed_lane = lane;
             change_done = false;
         }
-        // ROS_INFO("set right lane!");
         out_lane.lanes.emplace_back(lane);
         check_same_tmp.emplace_back(seq);
     }
-    // lane_check_ok = true;
 }
 
 double CalcAroundWaypoints::calcRollInMargin(){
@@ -334,94 +358,79 @@ double CalcAroundWaypoints::calcRollInMargin(){
         return 8 + (0.8*cur_vel) + (2.5 * sqrt(cur_vel - 4));
 }
 
+template <typename T>
+void CalcAroundWaypoints::setClearVector(std::vector<T>& in_vector) {
+    in_vector.clear();
+    in_vector.resize(0);
+}
+
 void CalcAroundWaypoints::run(){
-    std_msgs::String check_msg;
-    check_msg.data = "T";
-    alive_pub.publish(check_msg);
-    
     autoware_msgs::LaneArray output_lane;
 
     output_lane.id = global_lane.id;
-    output_lane.lanes.clear();
-    output_lane.lanes.resize(0);
-
+    setClearVector(output_lane.lanes);
     std::vector<int> check_same_tmp;
-    check_same_tmp.clear();
-    check_same_tmp.resize(0);
+    setClearVector(check_same_tmp);
 
     main_lane_idx = getGlobalMainLaneIndex(global_lane);
-    if (main_lane_idx == -1){
-        ROS_ERROR("main_lane_idx is -1");
-        exit(1); 
-    }
-
     bool is_near = false;
-
     int cur_index;
-    wait--;
-    if (wait < -999999) wait = -1;
+    
     if(change_done){
-        if (wait < 0){
-            onSign("straight");
-            nh.setParam("/op_trajectory_generator/samplingOutMargin", DEFAULT_MARGIN);
-            for(int i = 0; i < global_lane.lanes.size(); i++){
+        onSign("straight");
+        nh.setParam("/op_trajectory_generator/samplingOutMargin", DEFAULT_MARGIN);
+        for(int i = 0; i < global_lane.lanes.size(); i++){
+            for(auto& waypoint : global_lane.lanes[i].waypoints){
+                if(checkDistance(waypoint.pose.pose.position.x
+                                ,waypoint.pose.pose.position.y
+                                ,waypoint.pose.pose.position.z
+                                ,CURRENT_DIST_THRESHOLD))
+                {
+                    output_lane.lanes.push_back(global_lane.lanes[i]);
+                    check_same_tmp.emplace_back(i);
+                    cur_index = i;
+                    break;
+                }
+            }
+        }
+        if (cur_index == main_lane_idx) manager_state.tryNextState("current_lane_is_main");
+//        if (wait < 0){
+        for(int i = 0; i < global_lane.lanes.size(); i++){
+            if(i != cur_index){
                 for(auto& waypoint : global_lane.lanes[i].waypoints){
                     if(checkDistance(waypoint.pose.pose.position.x
                                     ,waypoint.pose.pose.position.y
                                     ,waypoint.pose.pose.position.z
-                                    ,CURRENT_DIST_THRESHOLD))
+                                    ,DIST_THRESHOLD))
                     {
-                        output_lane.lanes.push_back(global_lane.lanes[i]);
-                        check_same_tmp.emplace_back(i);
-                        cur_index = i;
+                        is_near = true;
+                        lane_x = waypoint.pose.pose.position.x;
+                        lane_y = waypoint.pose.pose.position.y;
                         break;
                     }
                 }
-            }
-
-            if (cur_index == main_lane_idx) manager_state.tryNextState("current_lane_is_main");
-
-            for(int i = 0; i < global_lane.lanes.size(); i++){
-                if(i != cur_index){
-                    for(auto& waypoint : global_lane.lanes[i].waypoints){
-                        if(checkDistance(waypoint.pose.pose.position.x
-                                        ,waypoint.pose.pose.position.y
-                                        ,waypoint.pose.pose.position.z
-                                        ,DIST_THRESHOLD))
-                        {
-                            is_near = true;
-                            lane_x = waypoint.pose.pose.position.x;
-                            lane_y = waypoint.pose.pose.position.y;
-                            break;
-                        }
+                if(is_near){
+                    if(left_check || right_check){
+                        setNearLane(output_lane, global_lane.lanes[i], check_same_tmp, i);
                     }
-
-                    if(is_near){
-                        if(left_check || right_check){
-                            setNearLane(output_lane, global_lane.lanes[i], check_same_tmp, i);
-                        }
-                        is_near = false;
-                    }
+                    is_near = false;
                 }
             }
-
-            decision_wait--;
-            if (decision_wait < 0) doFollowMainLane(global_lane, main_lane_idx, cur_index);
-            else if (decision_wait < -999999) decision_wait = -1;
         }
+//        }
+
+        decision_wait--;
+        if (decision_wait < 0) doFollowMainLane(global_lane, main_lane_idx, cur_index);
+
     }
     else{
-        // ROS_INFO("change_done = false");
         change_done = checkLaneChangeDone(changed_lane);
-        output_lane.lanes.clear();
-        output_lane.lanes.resize(0);
+        setClearVector(output_lane.lanes);
         output_lane.lanes.emplace_back(changed_lane);
     }
 
     if(!checkSameLane(check_same_tmp,check_same) && output_lane.lanes.size() != 0){
         lane_pub.publish(output_lane);
         check_same = check_same_tmp;
-        // ROS_INFO("Changed around lanes!");
-        // lane_check_ok = false;
     }
 }

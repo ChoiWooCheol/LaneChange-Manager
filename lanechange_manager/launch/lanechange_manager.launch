@@ -1,22 +1,25 @@
-<launch>
-    <arg name="mainlane_dist_threshold" default="20.0" />
-    <arg name="dist_threshold"          default="4.0" />
-    <arg name="curr_dist_threshold"     default="1.0" />
-    <arg name="default_margin"          default="15.0" />
-    <arg name="main_frequency"          default="10" />
-    <arg name="change_frequency"        default="0.5" />
-    <arg name="main_wait"               default="3"/>
-    <arg name="decision_wait"           default="3"/>
-
+<launch> 
+    <arg name="mainlane_dist_threshold" default="20.0" /> <!-- meter -->
+    <arg name="dist_threshold"          default="4.0" /> <!-- meter -->
+    <arg name="curr_dist_threshold"     default="1.0" /> <!-- meter -->
+    <arg name="default_margin"          default="15.0" /> 
+    <arg name="main_frequency"          default="10" /> <!-- hz -->
+    <arg name="global_lane_topic"       default="/global_lane_waypoints_array" />
+    <arg name="main_wait"               default="2"/> <!-- sec -->
+    <arg name="decision_wait"           default="2"/> <!-- sec -->
     <node name="lanechange_manager" pkg="lanechange_manager" type="lanechange_manager" output="screen" >
         <param name="mainlane_dist_threshold" value="$(arg mainlane_dist_threshold)" />
         <param name="dist_threshold"          value="$(arg dist_threshold)" />
         <param name="current_dist_threshold"  value="$(arg curr_dist_threshold)" />
         <param name="default_margin"          value="$(arg default_margin)" />
         <param name="main_frequency"          value="$(arg main_frequency)" />
-        <param name="change_frequency"        value="$(arg change_frequency)" />
+        <param name="global_lane_topic"       value="$(arg global_lane_topic)" />
         <param name="main_wait"               value="$(arg main_wait)" />
         <param name="decision_wait"           value="$(arg decision_wait)" />
     </node>
-    <node name="echo_decision_publisher" pkg="lanechange_manager" type="echo_decision_publisher" output="screen" />
+
+    <arg name="decision_sleep_sec" default="1"/> <!-- sec -->
+    <node name="echo_decision_publisher" pkg="lanechange_manager" type="echo_decision_publisher" output="screen" >
+        <param name="decision_sleep_sec" value="$(arg decision_sleep_sec)" />
+    </node>
 </launch>

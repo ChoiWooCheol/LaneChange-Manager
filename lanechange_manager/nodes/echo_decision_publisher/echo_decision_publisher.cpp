@@ -6,10 +6,19 @@ public:
     EchoDecisionPublisher()
     : pub_echo_decision(nh.advertise<std_msgs::String>("change_decision", 10))
     , sub_request(nh.subscribe("change_sign", 1, &EchoDecisionPublisher::callbackChangeSign, this))
-    {}
+    , private_nh("~")
+    {
+        if(!private_nh.getParam("decision_sleep_sec", sleep_sec)) throw std::runtime_error("set decision_sleep_sec");
+    }
     ~EchoDecisionPublisher() {}
+
+    double getSleepFrequency() {
+        if (sleep_sec < 0) return 20.0;
+        else return 1.0 / sleep_sec;
+    } 
+    
     void callbackChangeSign(const std_msgs::String::ConstPtr& in_sign) {
-        ros::Rate loop_rate(0.5);
+        ros::Rate loop_rate(getSleepFrequency());
 
         std_msgs::String decision;
         if (in_sign->data == "right"){
@@ -43,9 +52,11 @@ public:
     }
 
 private:
-    ros::NodeHandle nh;
+    ros::NodeHandle nh, private_nh;
     ros::Publisher pub_echo_decision;
     ros::Subscriber sub_request;
+
+    double sleep_sec;
 };
 
 
