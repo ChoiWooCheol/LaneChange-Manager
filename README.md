@@ -31,4 +31,4 @@ $ roslaunch lanechange_manager lanechange_manager.launch
 <img src="lanechange_manager/img/ChangeToRightState.png" width="100%" height="100%">
 
 4. lanechange manager의 내부 state machine
-<img src="lanechange_manager/img/state_machine.png" width="100%" height="100%">
+<img src="lanechange_manager/img/state_machine.PNG" width="100%" height="100%">
