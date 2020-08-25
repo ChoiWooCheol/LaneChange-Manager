@@ -5,11 +5,14 @@
 #include <vector>
 #include <string>
 
-#define STATE_FOLLOW 0
-#define STATE_NEED_LANE_CHANGE 1
-#define STATE_CHECK_NEXT_LANE 2
-#define STATE_EXCUTE_LANE_CHANGE 3
-#define STATE_LANE_CHANGE_DONE 4
+enum STATE
+{
+    FOLLOW,
+    NEED_LANE_CHANGE,
+    CHECK_NEXT_LANE,
+    EXCUTE_LANE_CHANGE,
+    LANE_CHANGE_DONE
+};
 
 /* transition
     * not_need_lane_change
@@ -25,22 +28,22 @@
 class LaneChangeStateMachine{
 public:
     LaneChangeStateMachine(){
-        transition_map_follow.insert(std::make_pair("received_global_path",                  STATE_NEED_LANE_CHANGE)); // follow -> need_lane_change
-        transition_map_follow.insert(std::make_pair("current_lane_is_main",                  STATE_FOLLOW));           // follow -> follow
-        transition_map_need_lane_chanege.insert(std::make_pair("not_need_lane_change",       STATE_FOLLOW));           // need_lane_change -> follow
-        transition_map_need_lane_chanege.insert(std::make_pair("received_multi_global_path", STATE_CHECK_NEXT_LANE));  // need_lane_change -> check_next_lane
-        transition_map_check_next_lane.insert(std::make_pair("can_not_excute_lane_change",   STATE_CHECK_NEXT_LANE));  // check_next_lane -> check_next_lane
-        transition_map_check_next_lane.insert(std::make_pair("can_excute_lane_change",       STATE_EXCUTE_LANE_CHANGE)); // check_next_lane -> excute_lane_change
-        transition_map_check_next_lane.insert(std::make_pair("current_lane_is_main",         STATE_FOLLOW));           // check_next_lane -> follow
-        transition_map_excute_lane_change.insert(std::make_pair("is_target_lane_no",         STATE_EXCUTE_LANE_CHANGE)); // excute_lane_change -> excute_lane_change
-        transition_map_excute_lane_change.insert(std::make_pair("is_target_lane_yes",        STATE_LANE_CHANGE_DONE)); // excute_lane_change -> lane_change_done
-        transition_map_lane_change_done.insert(std::make_pair("lane_change_is_done",         STATE_NEED_LANE_CHANGE)); // lane_change_done -> need_lane_change
+        transition_map_follow.insert(std::make_pair("received_global_path",                  STATE::NEED_LANE_CHANGE)); // follow -> need_lane_change
+        transition_map_follow.insert(std::make_pair("current_lane_is_main",                  STATE::FOLLOW));           // follow -> follow
+        transition_map_need_lane_chanege.insert(std::make_pair("not_need_lane_change",       STATE::FOLLOW));           // need_lane_change -> follow
+        transition_map_need_lane_chanege.insert(std::make_pair("received_multi_global_path", STATE::CHECK_NEXT_LANE));  // need_lane_change -> check_next_lane
+        transition_map_check_next_lane.insert(std::make_pair("can_not_excute_lane_change",   STATE::CHECK_NEXT_LANE));  // check_next_lane -> check_next_lane
+        transition_map_check_next_lane.insert(std::make_pair("can_excute_lane_change",       STATE::EXCUTE_LANE_CHANGE)); // check_next_lane -> excute_lane_change
+        transition_map_check_next_lane.insert(std::make_pair("current_lane_is_main",         STATE::FOLLOW));           // check_next_lane -> follow
+        transition_map_excute_lane_change.insert(std::make_pair("is_target_lane_no",         STATE::EXCUTE_LANE_CHANGE)); // excute_lane_change -> excute_lane_change
+        transition_map_excute_lane_change.insert(std::make_pair("is_target_lane_yes",        STATE::LANE_CHANGE_DONE)); // excute_lane_change -> lane_change_done
+        transition_map_lane_change_done.insert(std::make_pair("lane_change_is_done",         STATE::NEED_LANE_CHANGE)); // lane_change_done -> need_lane_change
         transition_map.emplace_back(transition_map_follow);
         transition_map.emplace_back(transition_map_need_lane_chanege);
         transition_map.emplace_back(transition_map_check_next_lane);
         transition_map.emplace_back(transition_map_excute_lane_change);
         transition_map.emplace_back(transition_map_lane_change_done);
-        state = STATE_FOLLOW;
+        state = STATE::FOLLOW;
     }
     ~LaneChangeStateMachine(){}
 
@@ -65,17 +68,17 @@ public:
             state = transition_map[state].at(transition);
             if(prev_state != state){
                 std::string prev, curr;
-                if (prev_state == STATE_FOLLOW) prev = "FOLLOW";
-                else if (prev_state == STATE_NEED_LANE_CHANGE) prev = "NeedLaneChange";
-                else if (prev_state == STATE_CHECK_NEXT_LANE) prev = "CheckNextLane";
-                else if (prev_state == STATE_EXCUTE_LANE_CHANGE) prev = "ExcuteLaneChange";
-                else if (prev_state == STATE_LANE_CHANGE_DONE) prev = "LaneChangeDone";
+                if (prev_state == STATE::FOLLOW) prev = "FOLLOW";
+                else if (prev_state == STATE::NEED_LANE_CHANGE) prev = "NeedLaneChange";
+                else if (prev_state == STATE::CHECK_NEXT_LANE) prev = "CheckNextLane";
+                else if (prev_state == STATE::EXCUTE_LANE_CHANGE) prev = "ExcuteLaneChange";
+                else if (prev_state == STATE::LANE_CHANGE_DONE) prev = "LaneChangeDone";
 
-                if (state == STATE_FOLLOW) curr = "FOLLOW";
-                else if (state == STATE_NEED_LANE_CHANGE) curr = "NeedLaneChange";
-                else if (state == STATE_CHECK_NEXT_LANE) curr = "CheckNextLane";
-                else if (state == STATE_EXCUTE_LANE_CHANGE) curr = "ExcuteLaneChange";
-                else if (state == STATE_LANE_CHANGE_DONE) curr = "LaneChangeDone";
+                if (state == STATE::FOLLOW) curr = "FOLLOW";
+                else if (state == STATE::NEED_LANE_CHANGE) curr = "NeedLaneChange";
+                else if (state == STATE::CHECK_NEXT_LANE) curr = "CheckNextLane";
+                else if (state == STATE::EXCUTE_LANE_CHANGE) curr = "ExcuteLaneChange";
+                else if (state == STATE::LANE_CHANGE_DONE) curr = "LaneChangeDone";
 
                 ROS_WARN("Changed State [%s]->[%s]", prev.c_str(), curr.c_str());
             }
