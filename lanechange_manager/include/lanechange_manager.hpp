@@ -34,6 +34,7 @@ public:
     , right_check(false)
     , left_change(false)
     , right_change(false)
+    , overlap_published(false)
     , wait(0)
     , decision_wait(0)
     {
@@ -56,29 +57,33 @@ public:
         setClearVector(check_same);
     }
 
-    template <typename T>
-    void setClearVector(std::vector<T>& in_vector);
-
+    bool isReady();
+    bool checkOverlapLanes();
     bool checkDistance(const double x, const double y, const double z, const double in_dist);
     bool checkLaneChangeDone(const autoware_msgs::Lane& next_lane);
+    bool checkSameLane(const std::vector<int>& cur_lanes, const std::vector<int>& prev_lanes);
+
     // void callbackLaneWaypointsArray(const autoware_msgs::LaneArray::ConstPtr& in_lane);
     void callbackCurrentPose(const geometry_msgs::PoseStamped::ConstPtr& in_pose);
     void callbackLocalWeightTrajectories(const autoware_msgs::LaneArray::ConstPtr& in_trajectory);
     void callbackGlobalPath(const autoware_msgs::LaneArray::ConstPtr& global_lanes);
-    bool isReady();
-    bool checkSameLane(const std::vector<int>& cur_lanes, const std::vector<int>& prev_lanes);
-    void callbackCurrentVelocity(const geometry_msgs::TwistStamped::ConstPtr& in_velocity);
-    void onSign(std::string in_sign);
     void callbackChangeDecision(const std_msgs::String::ConstPtr& msg);
-    int setWaitTime(const uint sec);
+    void callbackCurrentVelocity(const geometry_msgs::TwistStamped::ConstPtr& in_velocity);
+
+    void onSign(std::string in_sign);
+    
+    template <typename T> void setClearVector(std::vector<T>& in_vector);
+    int  setWaitTime(const uint sec);
     void setState(std::string& data, const uint curr_idx);
     void setNearLane(autoware_msgs::LaneArray& out_lane, const autoware_msgs::Lane& lane,
                     std::vector<int>& check_same_tmp, int& seq);
-    void doFollowMainLane(const autoware_msgs::LaneArray& global_lane, const uint main_lane_idx, const uint curr_idx);
+    
     int getGlobalMainLaneIndex(const autoware_msgs::LaneArray& global_lanes);
     int calcLaneEquationDist(const double x, const double y);
     void publishFirstCurrentLane(const autoware_msgs::LaneArray& global_lanes);
     double calcRollInMargin();
+
+    void doFollowMainLane(const autoware_msgs::LaneArray& global_lane, const uint main_lane_idx, const uint curr_idx);
     void run();
 
     double prev_pose_x = 0.0, prev_pose_y = 0.0;
@@ -109,7 +114,7 @@ private:
     bool subscribe_ok, lane_check_ok;
     bool left_check, right_check;
     bool left_change, right_change;
-    bool change_done;
+    bool change_done, overlap_published;
 
     int wait_time, decision_wait_time;
 

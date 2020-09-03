@@ -9,13 +9,13 @@ int main(int argc, char *argv[])
    
     CalcAroundWaypoints calc_waypoints;
     ros::Rate loop_rate(main_frequency);
-    while(ros::ok()){
-        ros::spinOnce();
-        --calc_waypoints.wait;
-        if(calc_waypoints.isReady() && calc_waypoints.wait < 0){
-            calc_waypoints.run();
-        }
+    while(ros::ok())
+    {
         loop_rate.sleep();
+        ros::spinOnce();
+        if(calc_waypoints.checkOverlapLanes()) continue;
+        --calc_waypoints.wait;
+        if(calc_waypoints.isReady() && calc_waypoints.wait < 0) calc_waypoints.run();
     }
     return 0;
 }

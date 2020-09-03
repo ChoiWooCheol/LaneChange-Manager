@@ -6,7 +6,7 @@
     <arg name="main_frequency"          default="10" /> <!-- hz -->
     <arg name="global_lane_topic"       default="/global_lane_waypoints_array" />
     <arg name="main_wait"               default="2"/> <!-- sec -->
-    <arg name="decision_wait"           default="2"/> <!-- sec -->
+    <arg name="decision_wait"           default="3"/> <!-- sec -->
     <node name="lanechange_manager" pkg="lanechange_manager" type="lanechange_manager" output="screen" >
         <param name="mainlane_dist_threshold" value="$(arg mainlane_dist_threshold)" />
         <param name="dist_threshold"          value="$(arg dist_threshold)" />
